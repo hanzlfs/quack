@@ -10,6 +10,14 @@ build --incompatible_strict_action_env
 # code (quack ships real __init__.py files everywhere).
 build --incompatible_default_to_explicit_init_py
 
+# rules_python's native venv/site-packages layout for py_binary/py_test
+# (bazel-contrib/rules_python#2156). Required by this dependency set:
+# nvidia-cutlass-dsl is delivered as an executable .pth line (only processed
+# in a real site-packages) and its overlay wheels share one directory tree.
+# Experimental but the NVIDIA-package case is upstream-tested (#3228).
+build --@rules_python//python/config_settings:bootstrap_impl=script
+build --@rules_python//python/config_settings:venvs_site_packages=yes
+
 # GPU tests are opt-in: tagged "gpu", skipped unless --config=gpu.
 test --test_tag_filters=-gpu
 test:gpu --test_tag_filters=gpu

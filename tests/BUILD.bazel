@@ -1,9 +1,10 @@
-load("@rules_python//python:defs.bzl", "py_test")
+load("@rules_python//python:defs.bzl", rules_python_py_test = "py_test")
+load(":defs.bzl", "py_test")
 
 # No GPU needed: guards the Bazel graph against lock entries silently
 # dropped by rules_python's extras handling (see the file docstring).
-# Deliberately not named test_*.py so the pytest macro below skips it.
-py_test(
+# Uses the raw rule directly: it is not a pytest test.
+rules_python_py_test(
     name = "lock_closure_test",
     size = "small",
     srcs = ["lock_closure_test.py"],
@@ -11,34 +12,103 @@ py_test(
     deps = ["//:quack"],
 )
 
-# One py_test per pytest file. All tests need a GPU (tag "gpu"; run with
-# `bazel test --config=gpu`, see .bazelrc). Distributed tests additionally
-# need multiple GPUs and are tagged "manual" so they never run implicitly —
-# invoke them by explicit label.
-[
-    py_test(
-        name = src.replace("/", "_").removesuffix(".py"),
-        size = "large",
-        srcs = [
-            "pytest_main.py",
-            src,
-        ] + glob(["conftest.py"]),
-        args = [
-            "-svvx",
-            "$(location %s)" % src,
-        ],
-        data = ["//:pyproject.toml"],
-        main = "pytest_main.py",
-        tags = ["gpu"] + (["manual"] if "distributed" in src else []),
-        deps = [
-            "//:quack",
-            "@local_pypi//pytest",
-            "@local_pypi//pytest_xdist",
-        ],
-    )
-    for src in glob([
-        "test_*.py",
-        "dsl/test_*.py",
-        "sync/test_*.py",
-    ])
-]
+# One explicit target per pytest file (py_test here is the pytest wrapper
+# macro from :defs.bzl). Adding a test file requires adding a declaration
+# here — by design (reviewable target list, no glob magic).
+
+py_test(name = "test_async_compile")
+
+py_test(name = "test_autotuner")
+
+# Multi-GPU; run by explicit label only.
+py_test(
+    name = "test_blockscaled_distributed_gemm",
+    tags = ["manual"],
+)
+
+py_test(name = "test_blockscaled_operand")
+
+py_test(name = "test_blockscaled_quantize")
+
+py_test(name = "test_cache")
+
+py_test(name = "test_complex")
+
+py_test(name = "test_cross_entropy")
+
+# Multi-GPU; run by explicit label only.
+py_test(
+    name = "test_distributed_gemm",
+    tags = ["manual"],
+)
+
+py_test(name = "test_epi_autotune")
+
+py_test(name = "test_epi_ops")
+
+py_test(name = "test_epilogue_iface")
+
+py_test(name = "test_fast_math")
+
+py_test(name = "test_gemm_256x512")
+
+py_test(name = "test_gemm_blockscaled_interface")
+
+py_test(name = "test_gemm_epilogue")
+
+py_test(name = "test_gemm_sm100_blockscaled")
+
+py_test(name = "test_gemm_split_k")
+
+py_test(name = "test_gemm_symmetric")
+
+py_test(name = "test_layernorm")
+
+py_test(name = "test_linear")
+
+py_test(name = "test_linear_cross_entropy")
+
+py_test(name = "test_linear_varlen_k")
+
+py_test(name = "test_linear_varlen_m")
+
+py_test(name = "test_mlp")
+
+py_test(name = "test_namedtuple_tvm_ffi")
+
+py_test(name = "test_rmsnorm")
+
+py_test(name = "test_rotary")
+
+py_test(name = "test_softmax")
+
+# Requires the jax extra, which is not in the lock; run by explicit label
+# after adding jax to the lock.
+py_test(
+    name = "test_softmax_jax",
+    tags = ["manual"],
+)
+
+py_test(name = "test_topk")
+
+py_test(name = "test_torch_library_op")
+
+py_test(
+    name = "dsl_test_cute_tensor",
+    src = "dsl/test_cute_tensor.py",
+)
+
+py_test(
+    name = "dsl_test_cute_tensor_indexing",
+    src = "dsl/test_cute_tensor_indexing.py",
+)
+
+py_test(
+    name = "dsl_test_mixed_constexpr_if",
+    src = "dsl/test_mixed_constexpr_if.py",
+)
+
+py_test(
+    name = "sync_test_barrier",
+    src = "sync/test_barrier.py",
+)
