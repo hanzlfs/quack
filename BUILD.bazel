@@ -22,6 +22,7 @@ py_library(
     deps = [
         "@local_pypi//nvidia_cuda_cupti",
         "@local_pypi//nvidia_cuda_runtime",
+        "@local_pypi//nvidia_cutlass_dsl_libs_cu13",
         "@local_pypi//nvidia_cufft",
         "@local_pypi//nvidia_cufile",
         "@local_pypi//nvidia_curand",
