@@ -1,0 +1,44 @@
+load("@rules_python//python:defs.bzl", "py_test")
+
+# No GPU needed: guards the Bazel graph against lock entries silently
+# dropped by rules_python's extras handling (see the file docstring).
+# Deliberately not named test_*.py so the pytest macro below skips it.
+py_test(
+    name = "lock_closure_test",
+    size = "small",
+    srcs = ["lock_closure_test.py"],
+    data = ["//:requirements_lock.txt"],
+    deps = ["//:quack"],
+)
+
+# One py_test per pytest file. All tests need a GPU (tag "gpu"; run with
+# `bazel test --config=gpu`, see .bazelrc). Distributed tests additionally
+# need multiple GPUs and are tagged "manual" so they never run implicitly —
+# invoke them by explicit label.
+[
+    py_test(
+        name = src.replace("/", "_").removesuffix(".py"),
+        size = "large",
+        srcs = [
+            "pytest_main.py",
+            src,
+        ] + glob(["conftest.py"]),
+        args = [
+            "-svvx",
+            "$(location %s)" % src,
+        ],
+        data = ["//:pyproject.toml"],
+        main = "pytest_main.py",
+        tags = ["gpu"] + (["manual"] if "distributed" in src else []),
+        deps = [
+            "//:quack",
+            "@local_pypi//pytest",
+            "@local_pypi//pytest_xdist",
+        ],
+    )
+    for src in glob([
+        "test_*.py",
+        "dsl/test_*.py",
+        "sync/test_*.py",
+    ])
+]

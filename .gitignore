@@ -81,6 +81,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
+docs/
 docs/_build/
 
 # PyBuilder
@@ -182,3 +183,6 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+# Bazel convenience symlinks and materialized venv
+bazel-*

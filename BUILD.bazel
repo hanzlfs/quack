@@ -1,0 +1,62 @@
+load("@aspect_rules_py//py:defs.bzl", "py_venv")
+load("@rules_python//python:defs.bzl", "py_library")
+
+# pytest reads [tool.pytest.ini_options] (addopts, filterwarnings) from
+# pyproject.toml; the lock file feeds //tests:lock_closure_test.
+exports_files([
+    "pyproject.toml",
+    "requirements_lock.txt",
+])
+
+# CUDA userland wheels that rules_python cannot reach through metadata:
+# cuda-toolkit (pulled in via cuda-python) declares every one of its
+# libraries behind an `extra == "..."` marker, and rules_python drops
+# dependency edges gated on extras, so these wheels are in the lock but
+# never enter the Bazel graph. torch's import-time CUDA preload
+# (torch/__init__._preload_cuda_deps) hard-requires each of them, so
+# declare the edges explicitly. (cublas/nvrtc are reachable through
+# torch -> cudnn and are not repeated here.)
+py_library(
+    name = "cuda_userland",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@local_pypi//nvidia_cuda_cupti",
+        "@local_pypi//nvidia_cuda_runtime",
+        "@local_pypi//nvidia_cufft",
+        "@local_pypi//nvidia_cufile",
+        "@local_pypi//nvidia_curand",
+        "@local_pypi//nvidia_cusolver",
+        "@local_pypi//nvidia_cusparse",
+        "@local_pypi//nvidia_nvjitlink",
+        "@local_pypi//nvidia_nvtx",
+    ],
+)
+
+# quack is a pure-Python package; kernels are JIT-compiled at runtime by
+# nvidia-cutlass-dsl, so there is nothing to compile at build time.
+py_library(
+    name = "quack",
+    srcs = glob(["quack/**/*.py"]),
+    imports = ["."],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":cuda_userland",
+        "@local_pypi//apache_tvm_ffi",
+        "@local_pypi//einops",
+        "@local_pypi//nvidia_cutlass_dsl",
+        "@local_pypi//torch",
+        "@local_pypi//torch_c_dlpack_ext",
+    ],
+)
+
+# Materializes a standard virtualenv (real pyvenv.cfg + site-packages) from
+# the Bazel dependency graph. `bazel run //:venv` builds //:quack and all
+# wheel deps, then symlinks the venv as ./.venv in the directory the command
+# was run from — run it from the repo root and uv discovers it automatically
+# (`uv run --no-sync ...`). The venv is a read-only view of the hermetic
+# build: never `pip install` into it; change deps via pyproject.toml ->
+# regenerate the lock -> `bazel run //:venv` again.
+py_venv(
+    name = "venv",
+    deps = [":quack"],
+)
