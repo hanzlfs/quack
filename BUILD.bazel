@@ -22,7 +22,6 @@ py_library(
     deps = [
         "@local_pypi//nvidia_cuda_cupti",
         "@local_pypi//nvidia_cuda_runtime",
-        "@local_pypi//nvidia_cutlass_dsl_libs_cu13",
         "@local_pypi//nvidia_cufft",
         "@local_pypi//nvidia_cufile",
         "@local_pypi//nvidia_curand",
@@ -30,6 +29,22 @@ py_library(
         "@local_pypi//nvidia_cusparse",
         "@local_pypi//nvidia_nvjitlink",
         "@local_pypi//nvidia_nvtx",
+    ],
+)
+
+# Runtime pip deps that previously rode nvidia-cutlass-dsl's wheel
+# metadata. @cutlass_dsl is a raw-archive repo carrying no pip metadata,
+# so the DSL's runtime requirements are declared here explicitly
+# (typing-extensions and numpy's edge also arrive via torch; listed where
+# the DSL is the actual consumer).
+py_library(
+    name = "cutlass_dsl_runtime_deps",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@local_pypi//cuda_python",
+        "@local_pypi//numpy",
+        "@local_pypi//nvidia_cuda_nvdisasm",
+        "@local_pypi//protobuf",
     ],
 )
 
@@ -42,9 +57,10 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":cuda_userland",
+        ":cutlass_dsl_runtime_deps",
+        "@cutlass_dsl//:cutlass",
         "@local_pypi//apache_tvm_ffi",
         "@local_pypi//einops",
-        "@local_pypi//nvidia_cutlass_dsl",
         "@local_pypi//torch",
         "@local_pypi//torch_c_dlpack_ext",
     ],

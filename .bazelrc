@@ -18,6 +18,11 @@ build --incompatible_default_to_explicit_init_py
 build --@rules_python//python/config_settings:bootstrap_impl=script
 build --@rules_python//python/config_settings:venvs_site_packages=yes
 
+# CUDA line for the CuTe DSL runtime.
+common --repo_env=CUTLASS_DSL_CUDA_LINE=cu13
+common:cu12 --repo_env=CUTLASS_DSL_CUDA_LINE=cu12
+common:cu13 --repo_env=CUTLASS_DSL_CUDA_LINE=cu13
+
 # GPU tests are opt-in: tagged "gpu", skipped unless --config=gpu.
 test --test_tag_filters=-gpu
 test:gpu --test_tag_filters=gpu

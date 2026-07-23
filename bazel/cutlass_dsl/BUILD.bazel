@@ -1,0 +1,4 @@
+# Package for the cutlass_dsl repository rule (see repository.bzl).
+exports_files([
+    "cutlass.BUILD.tpl",
+])

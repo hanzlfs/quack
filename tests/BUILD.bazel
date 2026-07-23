@@ -1,9 +1,6 @@
 load("@rules_python//python:defs.bzl", rules_python_py_test = "py_test")
 load(":defs.bzl", "py_test")
 
-# No GPU needed: guards the Bazel graph against lock entries silently
-# dropped by rules_python's extras handling (see the file docstring).
-# Uses the raw rule directly: it is not a pytest test.
 rules_python_py_test(
     name = "lock_closure_test",
     size = "small",
@@ -12,9 +9,13 @@ rules_python_py_test(
     deps = ["//:quack"],
 )
 
-# One explicit target per pytest file (py_test here is the pytest wrapper
-# macro from :defs.bzl). Adding a test file requires adding a declaration
-# here — by design (reviewable target list, no glob magic).
+rules_python_py_test(
+    name = "hermetic_audit_test",
+    size = "large",
+    srcs = ["hermetic_audit_test.py"],
+    tags = ["gpu"],
+    deps = ["//:quack"],
+)
 
 py_test(name = "test_async_compile")
 
@@ -70,7 +71,10 @@ py_test(name = "test_linear_cross_entropy")
 
 py_test(name = "test_linear_varlen_k")
 
-py_test(name = "test_linear_varlen_m")
+py_test(
+    name = "test_linear_varlen_m",
+    size = "enormous",
+)
 
 py_test(name = "test_mlp")
 
@@ -82,8 +86,6 @@ py_test(name = "test_rotary")
 
 py_test(name = "test_softmax")
 
-# Requires the jax extra, which is not in the lock; run by explicit label
-# after adding jax to the lock.
 py_test(
     name = "test_softmax_jax",
     tags = ["manual"],
