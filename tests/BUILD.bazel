@@ -2,11 +2,13 @@ load("@rules_python//python:defs.bzl", rules_python_py_test = "py_test")
 load(":defs.bzl", "py_test")
 
 rules_python_py_test(
-    name = "lock_closure_test",
+    name = "resolution_closure_test",
     size = "small",
-    srcs = ["lock_closure_test.py"],
-    data = ["//:requirements_lock.txt"],
-    deps = ["//:quack"],
+    srcs = ["resolution_closure_test.py"],
+    deps = [
+        "//:quack",
+        "@pypi_resolution//:manifest",
+    ],
 )
 
 rules_python_py_test(

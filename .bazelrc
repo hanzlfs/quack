@@ -1,48 +1,14 @@
-# Gives build actions a stable PATH and prevents implicit LD_LIBRARY_PATH
-# inheritance. This is NOT filesystem isolation: sandboxed actions still see
-# the host filesystem read-only, so an absolute-path CUDA install (e.g.
-# /usr/local/cuda) can leak in. That channel is closed by audit (M3.3), not
-# by this flag.
 build --incompatible_strict_action_env
-
-# Never auto-generate __init__.py files. Required by
-# enable_implicit_namespace_pkgs in MODULE.bazel; harmless for first-party
-# code (quack ships real __init__.py files everywhere).
 build --incompatible_default_to_explicit_init_py
-
-# rules_python's native venv/site-packages layout for py_binary/py_test
-# (bazel-contrib/rules_python#2156). Required by this dependency set:
-# nvidia-cutlass-dsl is delivered as an executable .pth line (only processed
-# in a real site-packages) and its overlay wheels share one directory tree.
-# Experimental but the NVIDIA-package case is upstream-tested (#3228).
 build --@rules_python//python/config_settings:bootstrap_impl=script
-build --@rules_python//python/config_settings:venvs_site_packages=yes
 
-# CUDA line for the CuTe DSL runtime.
+common --spawn_strategy=local
 common --repo_env=CUTLASS_DSL_CUDA_LINE=cu13
 common:cu12 --repo_env=CUTLASS_DSL_CUDA_LINE=cu12
 common:cu13 --repo_env=CUTLASS_DSL_CUDA_LINE=cu13
 
-# GPU tests are opt-in: tagged "gpu", skipped unless --config=gpu.
 test --test_tag_filters=-gpu
 test:gpu --test_tag_filters=gpu
-
-# Deliberate host input, not an oversight: GPU allocation belongs to the
-# host/scheduler, so the client's CUDA_VISIBLE_DEVICES is inherited as the
-# one declared scheduling channel into GPU tests.
 test:gpu --test_env=CUDA_VISIBLE_DEVICES
-
-# CAVEAT (accepted, documented): GPU model and driver are not part of the
-# action key, so cached test results are only valid while those are
-# unchanged. Fine for a single-node local cache (driver changes come with
-# pod rebuilds here). Before sharing a remote cache across heterogeneous
-# GPUs, encode GPU arch + driver into the platform / cache key (phase 2),
-# or run with --nocache_test_results.
-
-# Strict variant for hosts where the Linux sandbox is available (RunPod
-# pods lack the user-namespace privileges and fall back to
-# processwrapper-sandbox; forcing linux-sandbox there is a hard error).
-# Device-node mount pairs are only needed under
-# --experimental_use_hermetic_linux_sandbox, which is future work.
 test:gpu-strict --config=gpu
 test:gpu-strict --spawn_strategy=linux-sandbox
